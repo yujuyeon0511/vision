@@ -1,0 +1,38 @@
+{
+  "project": {
+    "name": "",
+    "description": "",
+    "created_at": "",
+    "updated_at": ""
+  },
+  "current_phase": "hypothesis",
+  "phases": {
+    "hypothesis": {
+      "status": "not_started",
+      "documents": [],
+      "notes": ""
+    },
+    "experiment_design": {
+      "status": "not_started",
+      "documents": [],
+      "notes": ""
+    },
+    "experiment_run": {
+      "status": "not_started",
+      "experiments": [],
+      "notes": ""
+    },
+    "result_analysis": {
+      "status": "not_started",
+      "documents": [],
+      "notes": ""
+    },
+    "paper_writing": {
+      "status": "not_started",
+      "sections": [],
+      "notes": ""
+    }
+  },
+  "experiments": [],
+  "iteration_count": 0
+}
