@@ -3,32 +3,34 @@
     "name": "TBI-MLLM: Tripartite Architectural Innovation for Bilingual MLLMs",
     "description": "Architectural innovations (vision encoder, projector, decoder merging) for Korean+English MLLM based on InternVLM",
     "created_at": "2026-02-11",
-    "updated_at": "2026-02-12T03:00:00"
+    "updated_at": "2026-02-12T04:15:00"
   },
-  "current_phase": "hypothesis",
+  "current_phase": "experiment_design",
   "phases": {
     "hypothesis": {
-      "status": "in_progress",
+      "status": "completed",
       "documents": [
         "docs/01-hypothesis/features/bilingual-mllm-arch-hypothesis.md",
         "docs/01-hypothesis/literature-review-bilingual-mllm-architecture.md",
         "docs/01-hypothesis/features/vision-encoder-improvement-hypothesis.md",
         "docs/01-hypothesis/vision-encoder-mllm-comprehensive-survey.md"
       ],
-      "notes": "Original tripartite hypothesis (25+ papers) + NEW vision encoder focused hypothesis with comprehensive survey (50+ papers covering 18 MLLM architectures, 14 vision encoders, 27 feature extraction methods, 12 models' training data). Focus: InternViT modernization with 2D-RoPE, window attention, spatial features."
+      "notes": "Two hypotheses defined: (1) Original tripartite TBI-MLLM (25+ papers), (2) Vision encoder focused InternViT-Next (50+ papers, 18 MLLM architectures, 14 vision encoders). Focus: 2D-RoPE, window attention, spatial features, adaptive compression."
     },
     "experiment_design": {
-      "status": "completed",
+      "status": "in_progress",
       "documents": [
         "docs/02-experiment-design/features/EXP-20260211-001-design.md",
-        "experiments/configs/EXP-20260211-001-config.yaml"
+        "experiments/configs/EXP-20260211-001-config.yaml",
+        "docs/02-experiment-design/features/EXP-20260212-001-design.md",
+        "experiments/configs/EXP-20260212-001-config.yaml"
       ],
-      "notes": "Comprehensive design with 16 experiments (A0-F4) across vision encoder, projector, and decoder ablations. 3-phase training protocol defined. Feasible on 2x A100-40GB with DeepSpeed ZeRO-2. NOTE: Vision encoder hypothesis may require updated experiment design."
+      "notes": "Two experiment designs: EXP-20260211-001 (TBI-MLLM tripartite ablation, 16 variants) and EXP-20260212-001 (InternViT-Next vision encoder modernization, 15 variants across 2 phases). Phase 1: Mini-InternVL 300M validation. Phase 2: Full InternViT-6B. ~245 GPU-days estimated."
     },
     "experiment_run": {
-      "status": "in_progress",
-      "experiments": ["EXP-20260211-001"],
-      "notes": "4-node cluster (8x A100-40GB). Conda env ready with core packages. Pending: flash-attn install, worker node setup, NCCL test, model/data download, training scripts."
+      "status": "not_started",
+      "experiments": ["EXP-20260211-001", "EXP-20260212-001"],
+      "notes": "Two experiments ready. EXP-20260212-001 recommended to start first (vision encoder focus). 2x A100-80GB available."
     },
     "result_analysis": {
       "status": "not_started",
@@ -51,6 +53,19 @@
       "priority_path": ["A0", "A1", "E2", "F4", "B3", "C2", "D4"],
       "estimated_gpu_days": 840,
       "created_at": "2026-02-11"
+    },
+    {
+      "id": "EXP-20260212-001",
+      "name": "InternViT-Next-Vision-Encoder-Modernization",
+      "status": "designed",
+      "num_variants": 15,
+      "phases": {
+        "phase1": {"model": "Mini-InternVL-300M", "variants": 8, "timeline": "2-3 weeks"},
+        "phase2": {"model": "InternViT-6B", "variants": 7, "timeline": "4-6 weeks"}
+      },
+      "modifications": ["2D-RoPE", "Window Attention", "Spatial Features (LLaVA-SP/PIIP)", "Adaptive Token Compression"],
+      "estimated_gpu_days": 245,
+      "created_at": "2026-02-12"
     }
   ],
   "iteration_count": 1
