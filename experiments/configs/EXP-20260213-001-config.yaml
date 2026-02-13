@@ -1,0 +1,524 @@
+# Korean MLLM Visual Blindness — Diagnosis & Mitigation
+# Experiment ID: EXP-20260213-001
+# Created: 2026-02-13
+# Description: Systematic diagnosis and mitigation of visual blindness in Korean-finetuned MLLMs
+
+# ============================================================================
+# GLOBAL SETTINGS
+# ============================================================================
+experiment:
+  id: "EXP-20260213-001"
+  name: "Korean-MLLM-Visual-Blindness"
+  description: "Diagnose why Korean fine-tuning causes visual blindness and develop mitigation strategies"
+  author: "Juyeon"
+  created_at: "2026-02-13"
+  hypothesis_doc: "docs/01-hypothesis/features/korean-mllm-visual-blindness-hypothesis.md"
+  design_doc: "docs/02-experiment-design/features/EXP-20260213-001-design.md"
+
+  phases:
+    phase1:
+      name: "Diagnosis"
+      purpose: "Quantify visual blindness across 3 architectures"
+      timeline: "2 weeks"
+      estimated_gpu_days: 2.3
+
+    phase2:
+      name: "Root Cause Isolation"
+      purpose: "Ablation study to isolate contributing factors"
+      timeline: "2 weeks"
+      estimated_gpu_days: 21.2
+
+    phase3:
+      name: "Mitigation"
+      purpose: "Evaluate 6 mitigation strategies"
+      timeline: "2-3 weeks"
+      estimated_gpu_days: 20.8
+
+  seeds: [42, 123, 456]
+  output_dir: "/NetDisk/juyeon/research/results/EXP-20260213-001"
+  cache_dir: "/NetDisk/juyeon/research/.cache"
+  log_dir: "/NetDisk/juyeon/research/results/EXP-20260213-001/logs"
+
+# ============================================================================
+# BASE MODELS
+# ============================================================================
+models:
+  internvl:
+    name: "InternVL2.5-2B"
+    source: "OpenGVLab/InternVL2_5-2B"
+    vision_encoder: "InternViT-300M"
+    projector_type: "mlp"
+    llm_decoder: "InternLM2-1.8B"
+    total_params: "2.2B"
+    image_size: 448
+    patch_size: 14
+    max_tiles: 6
+    vision_hidden_size: 1024
+    llm_hidden_size: 2048
+
+  llava:
+    name: "LLaVA-OneVision-0.5B"
+    source: "lmms-lab/llava-onevision-qwen2-0.5b-ov"
+    vision_encoder: "SigLIP-400M"
+    projector_type: "mlp"
+    llm_decoder: "Qwen2-0.5B"
+    total_params: "0.9B"
+    image_size: 384
+    patch_size: 14
+    max_tiles: 1
+    vision_hidden_size: 1152
+    llm_hidden_size: 896
+
+  qwen2vl:
+    name: "Qwen2-VL-2B"
+    source: "Qwen/Qwen2-VL-2B-Instruct"
+    vision_encoder: "ViT-600M"
+    projector_type: "cross_attention_merger"
+    llm_decoder: "Qwen2-1.5B"
+    total_params: "2.1B"
+    image_size: dynamic  # native dynamic resolution
+    patch_size: 14
+    max_tiles: null  # uses native resolution
+    vision_hidden_size: 1280
+    llm_hidden_size: 1536
+
+# ============================================================================
+# DATASETS
+# ============================================================================
+datasets:
+  training:
+    korean_vqa:
+      name: "AI Hub Korean VQA"
+      path: "data/korean_vqa/"
+      size: 100000
+      language: "ko"
+      format: "json"  # {"image": path, "question": str, "answer": str}
+
+    korean_captioning:
+      name: "AI Hub Korean Captioning"
+      path: "data/korean_captioning/"
+      size: 50000
+      language: "ko"
+      format: "json"
+
+    korean_vqa_curated:
+      name: "Curated Korean Visual Grounding"
+      path: "data/korean_vqa_curated/"
+      size: 30000  # filtered from korean_vqa
+      language: "ko"
+      format: "json"
+      notes: "Filtered for image-dependent questions (VDS > 0.5)"
+
+    llava_instruct:
+      name: "LLaVA-Instruct-150K"
+      path: "data/llava_instruct/"
+      size: 150000
+      language: "en"
+      format: "json"
+
+  evaluation:
+    korean_vqa_test:
+      name: "AI Hub Korean VQA Test"
+      path: "data/korean_vqa/test/"
+      size: 10000
+      language: "ko"
+
+    vqav2_val:
+      name: "VQAv2 Validation"
+      path: "data/vqav2/val/"
+      size: 214354
+      language: "en"
+
+    korean_vds:
+      name: "Korean VDS Subset"
+      path: "data/korean_vds/"
+      size: 1000
+      language: "ko"
+      notes: "Curated for visual dependency testing"
+
+    kobest:
+      name: "KoBEST Subset"
+      path: "data/kobest/"
+      size: 5000
+      language: "ko"
+      notes: "Text-only Korean NLU benchmark"
+
+# ============================================================================
+# PHASE 1: DIAGNOSIS
+# ============================================================================
+phase1_diagnosis:
+  # Standard Korean FT to reproduce the problem
+  korean_ft_config:
+    optimizer: "AdamW"
+    learning_rate: 2.0e-5
+    weight_decay: 0.01
+    lr_scheduler: "cosine"
+    warmup_ratio: 0.03
+    num_train_epochs: 3
+    per_device_train_batch_size: 2
+    gradient_accumulation_steps: 4  # effective batch_size = 16 (2 GPUs)
+    max_length: 2048
+    bf16: true
+    gradient_checkpointing: true
+    trainable_modules: ["llm", "projector"]
+    frozen_modules: ["vision_encoder"]
+    dataloader_num_workers: 4
+
+  # D1: Attention Distribution Analysis
+  attention_analysis:
+    num_test_images: 500
+    layers_to_analyze: "all"  # all decoder layers
+    metrics:
+      - visual_attention_ratio  # sum(attn[text->visual]) / sum(attn[text->all])
+      - attention_entropy       # entropy of attention distribution
+      - attention_sink_count    # number of visual tokens with disproportionate attention
+    save_raw_attention: false  # too large; save aggregated metrics only
+    output: "${experiment.output_dir}/phase1/attention/"
+
+  # D2: Projector Alignment
+  alignment_analysis:
+    num_test_images: 500
+    metrics:
+      - cosine_similarity     # between projector output and text embeddings
+      - cka                   # centered kernel alignment
+      - representational_similarity  # RSA
+    visualization: true  # t-SNE/UMAP of projected tokens
+    output: "${experiment.output_dir}/phase1/alignment/"
+
+  # D3: Linear Probing
+  probing:
+    probe_tasks:
+      - name: "object_presence"
+        type: "binary_classification"
+        num_classes: 2
+      - name: "spatial_relationship"
+        type: "binary_classification"
+        num_classes: 2
+      - name: "color_recognition"
+        type: "multiclass"
+        num_classes: 11  # basic colors
+      - name: "scene_classification"
+        type: "multiclass"
+        num_classes: 10  # indoor/outdoor subcategories
+    probe_layers: "every_4"  # probe every 4th layer
+    probe_epochs: 10
+    probe_lr: 1.0e-3
+    output: "${experiment.output_dir}/phase1/probing/"
+
+  # D4: Visual Dependency Score
+  vds:
+    method: "noise_image_comparison"
+    noise_type: "gaussian"  # replace image with gaussian noise
+    num_samples: 1000
+    output: "${experiment.output_dir}/phase1/vds/"
+
+  variants:
+    - id: "D1-A1"
+      model: "internvl"
+      condition: "baseline"
+      description: "InternVL2.5-2B pre-trained attention analysis"
+
+    - id: "D1-B1"
+      model: "internvl"
+      condition: "korean_ft"
+      description: "InternVL2.5-2B post-Korean-FT attention analysis"
+
+    - id: "D1-A2"
+      model: "llava"
+      condition: "baseline"
+      description: "LLaVA-OV-0.5B pre-trained attention analysis"
+
+    - id: "D1-B2"
+      model: "llava"
+      condition: "korean_ft"
+      description: "LLaVA-OV-0.5B post-Korean-FT attention analysis"
+
+    - id: "D1-A3"
+      model: "qwen2vl"
+      condition: "baseline"
+      description: "Qwen2-VL-2B pre-trained attention analysis"
+
+    - id: "D1-B3"
+      model: "qwen2vl"
+      condition: "korean_ft"
+      description: "Qwen2-VL-2B post-Korean-FT attention analysis"
+
+# ============================================================================
+# PHASE 2: ROOT CAUSE ISOLATION (ABLATION)
+# ============================================================================
+phase2_ablation:
+  primary_model: "internvl"  # InternVL2.5-2B for all ablations
+
+  factors:
+    F1_trainable:
+      level_0: "full_ft"       # Full LLM + projector fine-tuning
+      level_1: "lora_only"     # LoRA on LLM only (minimal embedding drift)
+
+    F2_projector:
+      level_0: "train"         # Train projector jointly
+      level_1: "freeze"        # Freeze projector
+
+    F3_data:
+      level_0: "raw"           # Full Korean VQA (~100K)
+      level_1: "curated"       # Curated visual grounding (~30K)
+
+    F4_regularization:
+      level_0: "none"          # No visual regularization
+      level_1: "viral"         # VIRAL alignment loss
+
+  # LoRA config for F1=1
+  lora:
+    r: 64
+    alpha: 128
+    dropout: 0.05
+    target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+
+  # VIRAL config for F4=1
+  viral:
+    lambda: 0.5
+    loss_type: "mse"
+    stop_gradient: true
+    normalize: true
+
+  variants:
+    - id: "A0"
+      factors: {F1: 0, F2: 0, F3: 0, F4: 0}
+      description: "Standard Korean FT (baseline, reproduce problem)"
+
+    - id: "A1"
+      factors: {F1: 1, F2: 0, F3: 0, F4: 0}
+      description: "LoRA-only LLM adaptation"
+
+    - id: "A2"
+      factors: {F1: 0, F2: 1, F3: 0, F4: 0}
+      description: "Frozen projector"
+
+    - id: "A3"
+      factors: {F1: 0, F2: 0, F3: 1, F4: 0}
+      description: "Curated data only"
+
+    - id: "A4"
+      factors: {F1: 0, F2: 0, F3: 0, F4: 1}
+      description: "VIRAL alignment regularization"
+
+    - id: "A5"
+      factors: {F1: 1, F2: 0, F3: 1, F4: 0}
+      description: "LoRA + curated data"
+
+    - id: "A6"
+      factors: {F1: 1, F2: 0, F3: 0, F4: 1}
+      description: "LoRA + VIRAL regularization"
+
+    - id: "A7"
+      factors: {F1: 0, F2: 0, F3: 1, F4: 1}
+      description: "Curated data + VIRAL regularization"
+
+    - id: "A8"
+      factors: {F1: 1, F2: 0, F3: 1, F4: 1}
+      description: "LoRA + curated + VIRAL (expected best combination)"
+
+    - id: "A9"
+      factors: {F1: 1, F2: 1, F3: 1, F4: 1}
+      description: "All mitigations (upper bound)"
+
+  # Cross-architecture validation
+  cross_validation:
+    models: ["llava", "qwen2vl"]
+    top_k_variants: 3  # validate top-3 from primary model
+    note: "Determined after primary ablation results"
+
+  evaluation:
+    metrics:
+      primary:
+        - korean_vqa_accuracy
+        - visual_dependency_score
+        - visual_attention_ratio
+        - projector_cka
+      secondary:
+        - english_vqa_accuracy  # VQAv2
+        - korean_text_accuracy  # KoBEST
+    statistical_tests:
+      - method: "anova"
+        target: "visual_dependency_score"
+        purpose: "Main effect of each factor"
+      - method: "paired_ttest"
+        baseline: "A0"
+        target: "all variants"
+      - method: "variance_decomposition"
+        purpose: "Factor importance ranking"
+
+# ============================================================================
+# PHASE 3: MITIGATION
+# ============================================================================
+phase3_mitigation:
+  primary_model: "internvl"
+
+  strategies:
+    M1_viral:
+      name: "VIRAL Regularization"
+      type: "training"
+      hyperparameters:
+        lambda_search: [0.1, 0.5, 1.0]
+        loss_type: "mse"
+        stop_gradient: true
+        normalize: true
+      base_training: "${phase1_diagnosis.korean_ft_config}"
+
+    M2_var:
+      name: "Visual Attention Redistribution"
+      type: "inference"
+      hyperparameters:
+        alpha_search: [0.5, 1.0, 2.0]
+        head_selection: "image_centric"  # heads with >50% visual attention in baseline
+        redistribution: "proportional"   # proportional to original attention
+      note: "Training-free, applied post-hoc"
+
+    M3_staged:
+      name: "Staged Korean Adaptation"
+      type: "training"
+      stages:
+        stage1:
+          name: "alignment"
+          trainable: ["projector"]
+          learning_rate: 1.0e-3
+          epochs: 1
+          data: "korean_captioning"
+          batch_size: 32
+
+        stage2:
+          name: "basic_sft"
+          trainable: ["llm_lora"]
+          learning_rate: 2.0e-5
+          epochs: 2
+          data: "korean_vqa"
+          lora_r: 64
+          batch_size: 16
+
+        stage3:
+          name: "advanced_sft"
+          trainable: ["llm_lora", "projector"]
+          learning_rate: 5.0e-6
+          epochs: 1
+          data: "korean_vqa_curated"
+          batch_size: 16
+
+    M4_realign:
+      name: "Projector Re-alignment"
+      type: "training"
+      steps:
+        step1:
+          description: "Standard Korean FT"
+          config: "${phase1_diagnosis.korean_ft_config}"
+        step2:
+          description: "Re-align projector"
+          trainable: ["projector"]
+          frozen: ["llm", "vision_encoder"]
+          learning_rate: 1.0e-4
+          epochs: 0.5
+          data: "visual_grounding_5k"  # 5K high-quality visual pairs
+
+    M5_debias:
+      name: "Visual Debias Decoding"
+      type: "inference"
+      hyperparameters:
+        beta_search: [0.3, 0.5, 1.0]
+        noise_type: "gaussian"
+      note: "Training-free, applied at inference"
+
+    M6_combined:
+      name: "Combined Best Strategy"
+      type: "training+inference"
+      note: "Determined after M1-M5 results"
+      expected_combination: "M3 (staged) + M1 (VIRAL) + M5 (debias decoding)"
+
+  variants:
+    - {id: "M1a", strategy: "M1_viral", lambda: 0.1, gpu_days: 2.0}
+    - {id: "M1b", strategy: "M1_viral", lambda: 0.5, gpu_days: 2.0}
+    - {id: "M1c", strategy: "M1_viral", lambda: 1.0, gpu_days: 2.0}
+    - {id: "M2a", strategy: "M2_var", alpha: 1.0, gpu_days: 0.2}
+    - {id: "M2b", strategy: "M2_var", alpha: 2.0, gpu_days: 0.2}
+    - {id: "M3",  strategy: "M3_staged", gpu_days: 3.5}
+    - {id: "M4",  strategy: "M4_realign", gpu_days: 2.0}
+    - {id: "M5a", strategy: "M5_debias", beta: 0.5, gpu_days: 0.2}
+    - {id: "M5b", strategy: "M5_debias", beta: 1.0, gpu_days: 0.2}
+    - {id: "M6",  strategy: "M6_combined", model: "internvl", gpu_days: 3.5}
+    - {id: "M6-LLaVA", strategy: "M6_combined", model: "llava", gpu_days: 2.0}
+    - {id: "M6-Qwen", strategy: "M6_combined", model: "qwen2vl", gpu_days: 3.0}
+
+  evaluation:
+    primary_metrics:
+      korean_vqa_accuracy:
+        dataset: "korean_vqa_test"
+        target: ">= baseline - 2%"
+      visual_dependency_score:
+        dataset: "korean_vds"
+        target: ">= 0.15"
+      visual_attention_ratio:
+        num_images: 500
+        target: ">= 80% of pre-FT value"
+      projector_cka:
+        num_images: 500
+        target: ">= 0.85"
+
+    secondary_metrics:
+      english_vqa:
+        dataset: "vqav2_val"
+        max_degradation: "3%"
+      inference_latency:
+        unit: "ms_per_sample"
+        max_overhead: "10%"
+      training_cost:
+        unit: "gpu_hours"
+        max_overhead: "50%"
+
+    statistical_tests:
+      significance: 0.05
+      method: "paired_ttest"
+      baseline: "A0"
+      confidence_interval: "bootstrap_95"
+      effect_size: "cohens_d"
+      num_seeds: 3
+
+# ============================================================================
+# HARDWARE & SOFTWARE
+# ============================================================================
+hardware:
+  gpus: "2x NVIDIA A100-PCIE-80GB"
+  vram_per_gpu: "80 GB"
+  total_vram: "160 GB"
+  strategy:
+    distributed: "DeepSpeed ZeRO-2"
+    mixed_precision: "bf16"
+    gradient_checkpointing: true
+    flash_attention: true
+
+software:
+  python: "3.10"
+  framework: "PyTorch 2.1+"
+  key_libraries:
+    - "transformers >= 4.40"
+    - "deepspeed >= 0.14"
+    - "peft >= 0.10"
+    - "flash-attn >= 2.5"
+    - "lmms-eval"  # for unified MLLM evaluation
+    - "scikit-learn"  # for probing, statistical tests
+    - "matplotlib"  # visualization
+    - "seaborn"  # visualization
+
+# ============================================================================
+# TOTAL BUDGET
+# ============================================================================
+budget:
+  phase1_gpu_days: 2.3
+  phase2_gpu_days: 21.2
+  phase3_gpu_days: 20.8
+  total_gpu_days: 44.3
+  with_2_gpus_calendar_days: 23
+  storage_estimate_gb: 500
