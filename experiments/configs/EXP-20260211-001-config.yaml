@@ -14,8 +14,8 @@ experiment:
   created_at: "2026-02-11"
   base_model: "OpenGVLab/InternVL2_5-8B"
   seeds: [42, 123, 456]
-  output_dir: "/home/juyeon/research/results/EXP-20260211-001"
-  cache_dir: "/home/juyeon/research/.cache"
+  output_dir: "/NetDisk/juyeon/research/results/EXP-20260211-001"
+  cache_dir: "/NetDisk/juyeon/research/.cache"
 
 # ============================================================================
 # MODEL ARCHITECTURE
@@ -382,25 +382,25 @@ data:
   # Dataset paths
   paths:
     # Korean datasets
-    k_dtcbench: "/home/juyeon/research/data/korean/k_dtcbench"
-    varco_vision_ko: "/home/juyeon/research/data/korean/varco_vision"
-    korean_ocr: "/home/juyeon/research/data/korean/ocr_synthetic"
-    korean_ui: "/home/juyeon/research/data/korean/ui_screenshots"
-    korean_math: "/home/juyeon/research/data/korean/math_translated"
-    korean_captions: "/home/juyeon/research/data/korean/captions"
+    k_dtcbench: "/NetDisk/juyeon/research/data/korean/k_dtcbench"
+    varco_vision_ko: "/NetDisk/juyeon/research/data/korean/varco_vision"
+    korean_ocr: "/NetDisk/juyeon/research/data/korean/ocr_synthetic"
+    korean_ui: "/NetDisk/juyeon/research/data/korean/ui_screenshots"
+    korean_math: "/NetDisk/juyeon/research/data/korean/math_translated"
+    korean_captions: "/NetDisk/juyeon/research/data/korean/captions"
 
     # English datasets
-    llava_instruct: "/home/juyeon/research/data/english/llava_v1_5_mix665k"
-    sharegpt4v: "/home/juyeon/research/data/english/sharegpt4v_100k"
-    textvqa: "/home/juyeon/research/data/english/textvqa"
-    docvqa: "/home/juyeon/research/data/english/docvqa"
-    chartqa: "/home/juyeon/research/data/english/chartqa"
-    table_llava: "/home/juyeon/research/data/english/table_llava"
-    plotqa: "/home/juyeon/research/data/english/plotqa"
-    infovqa: "/home/juyeon/research/data/english/infovqa"
-    mathvista: "/home/juyeon/research/data/english/mathvista"
-    cc3m_en: "/home/juyeon/research/data/english/cc3m"
-    cc3m_ko: "/home/juyeon/research/data/korean/cc3m_translated"
+    llava_instruct: "/NetDisk/juyeon/research/data/english/llava_v1_5_mix665k"
+    sharegpt4v: "/NetDisk/juyeon/research/data/english/sharegpt4v_100k"
+    textvqa: "/NetDisk/juyeon/research/data/english/textvqa"
+    docvqa: "/NetDisk/juyeon/research/data/english/docvqa"
+    chartqa: "/NetDisk/juyeon/research/data/english/chartqa"
+    table_llava: "/NetDisk/juyeon/research/data/english/table_llava"
+    plotqa: "/NetDisk/juyeon/research/data/english/plotqa"
+    infovqa: "/NetDisk/juyeon/research/data/english/infovqa"
+    mathvista: "/NetDisk/juyeon/research/data/english/mathvista"
+    cc3m_en: "/NetDisk/juyeon/research/data/english/cc3m"
+    cc3m_ko: "/NetDisk/juyeon/research/data/korean/cc3m_translated"
 
   # Preprocessing
   preprocessing:
@@ -435,109 +435,109 @@ evaluation:
   benchmarks:
     # General VQA
     mmbench_en:
-      path: "/home/juyeon/research/data/benchmarks/mmbench/en"
+      path: "/NetDisk/juyeon/research/data/benchmarks/mmbench/en"
       metric: "accuracy"
       priority: "high"
       language: "en"
 
     mmbench_ko:
-      path: "/home/juyeon/research/data/benchmarks/mmbench/ko"
+      path: "/NetDisk/juyeon/research/data/benchmarks/mmbench/ko"
       metric: "accuracy"
       priority: "high"
       language: "ko"
 
     mmstar:
-      path: "/home/juyeon/research/data/benchmarks/mmstar"
+      path: "/NetDisk/juyeon/research/data/benchmarks/mmstar"
       metric: "accuracy"
       priority: "high"
       language: "en"
 
     seed_bench:
-      path: "/home/juyeon/research/data/benchmarks/seed_bench"
+      path: "/NetDisk/juyeon/research/data/benchmarks/seed_bench"
       metric: "accuracy"
       priority: "medium"
       language: "en"
 
     # OCR & Text
     ocr_bench:
-      path: "/home/juyeon/research/data/benchmarks/ocr_bench"
+      path: "/NetDisk/juyeon/research/data/benchmarks/ocr_bench"
       metric: "f1"
       priority: "high"
       language: "en"
 
     textvqa:
-      path: "/home/juyeon/research/data/benchmarks/textvqa"
+      path: "/NetDisk/juyeon/research/data/benchmarks/textvqa"
       metric: "vqa_score"
       priority: "high"
       language: "en"
 
     # Chart Understanding
     chartqa:
-      path: "/home/juyeon/research/data/benchmarks/chartqa"
+      path: "/NetDisk/juyeon/research/data/benchmarks/chartqa"
       metric: "relaxed_accuracy"
       priority: "high"
       language: "en"
 
     charxiv:
-      path: "/home/juyeon/research/data/benchmarks/charxiv"
+      path: "/NetDisk/juyeon/research/data/benchmarks/charxiv"
       metric: "accuracy"
       priority: "high"
       language: "en"
 
     mchartqa:
-      path: "/home/juyeon/research/data/benchmarks/mchartqa"
+      path: "/NetDisk/juyeon/research/data/benchmarks/mchartqa"
       metric: "accuracy"
       priority: "medium"
       language: "multi"
 
     # Table Understanding
     wtq:
-      path: "/home/juyeon/research/data/benchmarks/wtq"
+      path: "/NetDisk/juyeon/research/data/benchmarks/wtq"
       metric: "accuracy"
       priority: "high"
       language: "en"
 
     tabfact:
-      path: "/home/juyeon/research/data/benchmarks/tabfact"
+      path: "/NetDisk/juyeon/research/data/benchmarks/tabfact"
       metric: "accuracy"
       priority: "medium"
       language: "en"
 
     # Document Understanding
     docvqa:
-      path: "/home/juyeon/research/data/benchmarks/docvqa"
+      path: "/NetDisk/juyeon/research/data/benchmarks/docvqa"
       metric: "anls"
       priority: "high"
       language: "en"
 
     infovqa:
-      path: "/home/juyeon/research/data/benchmarks/infovqa"
+      path: "/NetDisk/juyeon/research/data/benchmarks/infovqa"
       metric: "anls"
       priority: "medium"
       language: "en"
 
     # Math Reasoning
     mathvista:
-      path: "/home/juyeon/research/data/benchmarks/mathvista"
+      path: "/NetDisk/juyeon/research/data/benchmarks/mathvista"
       metric: "accuracy"
       priority: "high"
       language: "en"
 
     mathverse:
-      path: "/home/juyeon/research/data/benchmarks/mathverse"
+      path: "/NetDisk/juyeon/research/data/benchmarks/mathverse"
       metric: "accuracy"
       priority: "medium"
       language: "en"
 
     # Korean-Specific
     k_dtcbench:
-      path: "/home/juyeon/research/data/benchmarks/k_dtcbench"
+      path: "/NetDisk/juyeon/research/data/benchmarks/k_dtcbench"
       metric: "accuracy"
       priority: "critical"
       language: "ko"
 
     komm_bench:
-      path: "/home/juyeon/research/data/benchmarks/komm_bench"
+      path: "/NetDisk/juyeon/research/data/benchmarks/komm_bench"
       metric: "accuracy"
       priority: "high"
       language: "ko"
@@ -959,7 +959,7 @@ experiments:
 # LOGGING & MONITORING
 # ============================================================================
 logging:
-  output_dir: "/home/juyeon/research/results/EXP-20260211-001/logs"
+  output_dir: "/NetDisk/juyeon/research/results/EXP-20260211-001/logs"
 
   wandb:
     enabled: true
@@ -970,7 +970,7 @@ logging:
 
   tensorboard:
     enabled: true
-    log_dir: "/home/juyeon/research/results/EXP-20260211-001/tensorboard"
+    log_dir: "/NetDisk/juyeon/research/results/EXP-20260211-001/tensorboard"
 
   metrics:
     log_interval: 100
@@ -979,7 +979,7 @@ logging:
     log_level: "INFO"
 
   checkpoints:
-    save_dir: "/home/juyeon/research/results/EXP-20260211-001/checkpoints"
+    save_dir: "/NetDisk/juyeon/research/results/EXP-20260211-001/checkpoints"
     save_total_limit: 5
     save_strategy: "steps"
     save_steps: 5000
@@ -1008,10 +1008,10 @@ hardware:
     pin_memory: true
 
   storage:
-    cache_dir: "/home/juyeon/research/.cache"
-    data_dir: "/home/juyeon/research/data"
-    output_dir: "/home/juyeon/research/results"
-    checkpoint_dir: "/home/juyeon/research/results/EXP-20260211-001/checkpoints"
+    cache_dir: "/NetDisk/juyeon/research/.cache"
+    data_dir: "/NetDisk/juyeon/research/data"
+    output_dir: "/NetDisk/juyeon/research/results"
+    checkpoint_dir: "/NetDisk/juyeon/research/results/EXP-20260211-001/checkpoints"
 
 # ============================================================================
 # REPRODUCIBILITY
